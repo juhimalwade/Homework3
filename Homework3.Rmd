@@ -1,0 +1,97 @@
+---
+title: "Homework 3"
+author: "Juhi Malwade"
+date: "2025-09-25"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+### Read in packages and load the dataset:
+
+```{r, message=FALSE, warning=FALSE}
+library(dplyr)
+library(ggplot2)
+library(colorfindr)
+library(tidyr)
+
+df = read.csv('homework3_data.csv')
+head(df)
+```
+
+### Create color palette from Dunkin website:
+
+```{r}
+dat = get_colors("Dunkin_website.jpg")
+dat
+
+cols <- make_palette(dat[1:100,])
+cols
+```
+### Preliminary Analysis
+
+```{r}
+ggplot(df, aes(x = factor(design), y = sales))  +
+  geom_boxplot(fill = '#B84264') +
+  labs(x = "design", y = "sale amount", title = "Sales distribution by design")
+
+df %>%
+  group_by(design) %>% 
+  summarize(median_sales = median(sales))
+```
+The boxplot shows that the median sale amount is 32.01 dollars for the old design and 35.27 dollars for the new design. This is 4.26 dollar difference in median sales where the new design performed better. 
+
+```{r}
+#2: Buying more expensive items for newer design
+ggplot(df, aes(x = items, y = sales, color = factor(design))) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "lm", se = TRUE) +
+  labs(color = "design",
+       title = "Sales vs number of items (by design)",
+       x = "number of items",
+       y = "sale amount") + 
+  scale_color_manual(values = c("1" = '#B84264', "0" = "#DF692B"))
+```
+The scatterplot shows that customers bought more expensive items when using the new design. This indicates the new design may have successfully brought in more sales compared to the old design. 
+
+```{r}
+#3: t-test (Welch)
+t_res <- t.test(sales ~ design, data = df)
+t_res
+```
+The Welch Two Sample t-test shows that we are 95% confident that the true difference in mean sales between the old design and new design is between 2.78 and 4.55. Given this evidence, the redesign will increase sales well above the 1.80 benchmark. 
+
+
+```{r}
+#4
+lm1 = lm(sales ~ design + items + nps, data = df)
+summary(lm1)
+confint(lm1)
+```
+When we control for NPS and number of items the design effect shrinks to 0.32 with a confidence interval that contains zero (but not statistically signficant). However, items and nps seem to be strong drivers of sales. Given the results of the t-test, this makes me curious about if design instead more directly drives the number of items and nps, which then drives sales. 
+
+```{r}
+lm2 = lm(items ~ design + items + nps, data = df)
+summary(lm2)
+confint(lm2)
+
+lm3 = lm(nps ~ design + items + sales, data = df)
+summary(lm3)
+confint(lm3)
+```
+The results show that switching to the new design increases number of items by 1.43 on average, keeping all other variables constant. It also increases nps by 0.52 on average, keeping all other variables constant. None of their  confidence intervals contain zero. Therefore, it seems like the resdesign increases sales, but indirectly by increasing the number of items and nps.
+
+### Final Analysis: 
+I estimate customers using the new design will spend on average $3.66 more per transaction compared to the old design, with a 95% confidence interval of $2.78–$4.55. This comfortably exceeds the $1.80 threshold and indicates the company should commit to a full website redesign. While the redesign doesn’t contribute to an increase in sales directly once number of items and NPS are controlled for, it significantly increases both the number of items purchased (+1.43 items) and NPS (+0.52 points). Since both factors are statistically signficant predictors of increasing sales, these indirect pathways explain the higher sales. Therefore, the evidence shows that the redesign is worth pursuing.
+
+### Final Recommendation: 
+The company should commit to the redesign because it will lead to an average increase in sales that is greater than $1.80 per customer.
+
+### Alternative Statement: 
+The redesign does not increase sales by at least $1.80 per customer, even though the data suggests that it would.
+
+
+
